@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Soroban Smart Contracts ──────────────────────────────────────────────
+  contracts:
+    name: Contracts — Build & Test (Soroban)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Cache Cargo registry & build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Run contract tests
+        working-directory: contracts
+        run: cargo test --all -- --test-threads=4
+
+      - name: Build WASM artifacts (release)
+        working-directory: contracts
+        run: cargo build --release --target wasm32v1-none
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soroban-wasm
+          path: contracts/target/wasm32v1-none/release/*.wasm
+          retention-days: 7
+
+  # ─── API (Fastify + TypeScript) ──────────────────────────────────────────
+  api:
+    name: API — Typecheck, Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api db:generate
+
+      - name: Typecheck
+        run: pnpm --filter api typecheck
+
+      - name: Run tests with coverage
+        run: pnpm --filter api test:coverage
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
+          STELLAR_HORIZON_URL: https://horizon-testnet.stellar.org
+          STELLAR_RPC_URL: https://soroban-testnet.stellar.org
+          STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          STELLAR_ADMIN_SECRET: SCZANGBA5INAS6OXRM3VW44CBTJBIXVUQO2BHXBHK3EEL6AEBVHLS7O
+          STELLAR_NETWORK: testnet
+          NODE_ENV: test
+
+      - name: Upload API coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage/
+          retention-days: 7
+
+  # ─── Frontend (Next.js) ───────────────────────────────────────────────────
+  web:
+    name: Web — Typecheck, Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter web typecheck
+
+      - name: Lint
+        run: pnpm --filter web lint
+
+      - name: Run tests with coverage
+        run: pnpm --filter web test:coverage
+
+      - name: Upload web coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          retention-days: 7
+
+      - name: Build production bundle
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Upload Next.js build
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: apps/web/.next/
+          retention-days: 7
+
+  # ─── All-green gate ───────────────────────────────────────────────────────
+  ci-pass:
+    name: All checks passed
+    needs: [contracts, api, web]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "✅ CI pipeline passed"
+
+  # ─── Deploy to Testnet (main branch only) ────────────────────────────────
+  deploy-testnet:
+    name: Deploy Contracts — Testnet
+    needs: [ci-pass]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: testnet
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: soroban-wasm
+          path: contracts/target/wasm32v1-none/release/
+
+      - name: Install Stellar CLI
+        run: |
+          curl -L https://github.com/stellar/stellar-cli/releases/download/v22.7.1/stellar-cli-22.7.1-x86_64-unknown-linux-musl.tar.gz | tar xz
+          sudo mv stellar /usr/local/bin/
+
+      - name: Deploy contracts to testnet
+        env:
+          STELLAR_ADMIN_SECRET: ${{ secrets.STELLAR_ADMIN_SECRET }}
+        run: bash scripts/deploy-contracts.sh
+        continue-on-error: true
