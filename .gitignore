@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+.next/
+build/
+out/
+*.wasm
+contracts/target/
+
+# Turbo cache
+.turbo/
+
+# Environment — never commit secrets
+.env
+.env.local
+.env*.local
+.env.bak
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database migration backups
+prisma/migrations/*.sql.bak
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# Vercel / deployment artifacts
+.vercel
+
+# TypeScript incremental build info
+*.tsbuildinfo
