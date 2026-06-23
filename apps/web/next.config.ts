@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Required for Docker standalone build — packages server + deps into one folder
-  output: 'standalone',
+  // Use standalone only for Docker builds; Vercel manages its own output
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   images: {
     remotePatterns: [
@@ -13,10 +13,16 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3000'] },
+    serverActions: {
+      allowedOrigins: [
+        'localhost:3000',
+        'steluma.vercel.app',
+        '*.vercel.app',
+      ],
+    },
   },
 
-  // Suppress noisy build warnings for edge-only packages used by stellar-sdk
+  // Suppress build warnings for edge-only packages used by stellar-sdk
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
