@@ -55,9 +55,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Let pnpm/action-setup read the version from packageManager in package.json
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
@@ -101,9 +100,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Let pnpm/action-setup read the version from packageManager in package.json
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
@@ -151,7 +149,7 @@ jobs:
     needs: [contracts, api, web]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "✅ CI pipeline passed"
+      - run: echo "✅ CI pipeline passed — contracts + api + web all green"
 
   # ─── Deploy to Testnet (main branch only) ────────────────────────────────
   deploy-testnet:
