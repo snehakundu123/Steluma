@@ -1,0 +1,12 @@
+node_modules
+.turbo
+contracts/target
+apps/api
+docs
+scripts
+*.md
+!README.md
+pnpm-lock.yaml
+docker-compose.yml
+apps/web/coverage
+apps/web/.next
