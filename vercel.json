@@ -1,11 +1,6 @@
 {
-  "framework": "nextjs",
-  "rootDirectory": "apps/web",
-  "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter web build",
   "outputDirectory": "apps/web/.next",
-  "env": {
-    "NEXT_PUBLIC_STELLAR_NETWORK": "testnet",
-    "NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE": "Test SDF Network ; September 2015"
-  }
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs"
 }
