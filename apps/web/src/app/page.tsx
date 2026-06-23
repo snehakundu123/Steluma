@@ -124,94 +124,198 @@ export default async function HomePage() {
       <Navbar />
       <main className="min-h-screen overflow-x-hidden">
         {/* ===== HERO ===== */}
-        <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-[#06070D]">
-          {/* Background mesh */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-1/4 h-[600px] w-[600px] rounded-full bg-violet-600/15 blur-[120px]" />
-            <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[100px]" />
-            <div className="absolute top-1/3 right-0 h-[400px] w-[400px] rounded-full bg-purple-800/10 blur-[80px]" />
+        <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-white">
+          {/* Subtle background blobs */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-32 -left-32 h-[600px] w-[600px] rounded-full bg-violet-100/70 blur-[120px]" />
+            <div className="absolute top-1/2 -right-24 h-[500px] w-[500px] rounded-full bg-indigo-100/60 blur-[100px]" />
+            <div className="absolute bottom-0 left-1/3 h-[350px] w-[350px] rounded-full bg-purple-100/50 blur-[80px]" />
           </div>
 
-          {/* Grid pattern */}
+          {/* Dot grid pattern */}
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 opacity-[0.35]"
             style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '60px 60px',
+              backgroundImage: `radial-gradient(circle, #c4b5fd 1px, transparent 1px)`,
+              backgroundSize: '32px 32px',
             }}
           />
 
-          <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 py-24 lg:py-32">
-            <div className="max-w-4xl">
-              {/* Eyebrow */}
-              <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
-                <span className="flex h-2 w-2 shrink-0">
-                  <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="text-sm font-medium text-white/80">
-                  Built on Stellar · Powered by Soroban Smart Contracts
-                </span>
-              </div>
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 py-24 lg:py-28">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
 
-              {/* Headline */}
-              <h1 className="text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl xl:text-8xl">
-                The future of
-                <span className="block">
-                  <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                    event hosting
+              {/* ── LEFT: Copy ── */}
+              <div>
+                {/* Eyebrow */}
+                <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-violet-200 bg-violet-50 px-4 py-2">
+                  <span className="flex h-2 w-2 shrink-0">
+                    <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                   </span>
-                </span>
-                is here.
-              </h1>
+                  <span className="text-sm font-medium text-violet-700">
+                    Built on Stellar · Powered by Soroban Smart Contracts
+                  </span>
+                </div>
 
-              {/* Subhead */}
-              <p className="mt-6 max-w-2xl text-lg text-white/60 leading-relaxed sm:text-xl">
-                NFT tickets that attendees actually own. Organizer accountability through staking.
-                Attendance badges that last forever. All built on Stellar blockchain — invisible to users.
-              </p>
+                {/* Headline */}
+                <h1 className="text-5xl font-bold leading-[1.08] tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
+                  The future of
+                  <span className="block">
+                    <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                      event hosting
+                    </span>
+                  </span>
+                  is here.
+                </h1>
 
-              {/* CTAs */}
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link href="/events">
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-white text-gray-900 font-semibold hover:bg-white/90 shadow-xl shadow-white/10 h-12 px-6 text-base"
-                  >
-                    Explore Events <ArrowRight className="h-4.5 w-4.5" />
-                  </Button>
-                </Link>
-                <Link href="/events/create">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-12 px-6 text-base font-semibold border-white/20 text-white hover:bg-white/10 hover:border-white/30"
-                  >
-                    Host an Event
-                  </Button>
-                </Link>
+                {/* Subhead */}
+                <p className="mt-6 max-w-lg text-lg text-gray-500 leading-relaxed">
+                  NFT tickets that attendees actually own. Organizer accountability through staking.
+                  Attendance badges that last forever — all on Stellar blockchain.
+                </p>
+
+                {/* CTAs */}
+                <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Link href="/events">
+                    <Button
+                      size="lg"
+                      className="gap-2 bg-violet-600 text-white font-semibold hover:bg-violet-700 shadow-lg shadow-violet-200 h-12 px-6 text-base"
+                    >
+                      Explore Events <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/events/create">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-12 px-6 text-base font-semibold border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    >
+                      Host an Event
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Trust signals */}
+                <div className="mt-10 flex flex-wrap items-center gap-6">
+                  {[
+                    { icon: Shield, text: 'Organizer staking' },
+                    { icon: Lock, text: 'Fraud-proof QR' },
+                    { icon: Award, text: 'Soulbound badges' },
+                  ].map(({ icon: Icon, text }) => (
+                    <div key={text} className="flex items-center gap-2 text-sm text-gray-400">
+                      <Icon className="h-4 w-4 text-violet-500" />
+                      {text}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Trust signals */}
-              <div className="mt-10 flex flex-wrap items-center gap-6">
-                {[
-                  { icon: Shield, text: 'Organizer staking' },
-                  { icon: Lock, text: 'Fraud-proof QR' },
-                  { icon: Award, text: 'Soulbound badges' },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-2 text-sm text-white/50">
-                    <Icon className="h-4 w-4 text-violet-400" />
-                    {text}
+              {/* ── RIGHT: App preview ── */}
+              <div className="relative flex justify-center lg:justify-end">
+                {/* Floating glow */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-80 w-80 rounded-full bg-violet-200/40 blur-3xl" />
+                </div>
+
+                <div className="relative w-full max-w-sm space-y-4">
+                  {/* Main event card */}
+                  <div className="rounded-2xl bg-white shadow-xl shadow-gray-200/80 border border-gray-100 overflow-hidden">
+                    {/* Card image strip */}
+                    <div className="h-36 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 relative">
+                      <div className="absolute inset-0 opacity-20"
+                        style={{
+                          backgroundImage: `radial-gradient(circle at 30% 40%, white 1px, transparent 1px), radial-gradient(circle at 70% 70%, white 1px, transparent 1px)`,
+                          backgroundSize: '24px 24px',
+                        }}
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span className="rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-white border border-white/20">
+                          🎵 Music
+                        </span>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        <span className="rounded-full bg-emerald-400/90 backdrop-blur-sm px-2.5 py-1 text-xs font-bold text-white">
+                          LIVE
+                        </span>
+                      </div>
+                      {/* Floating ticket badge */}
+                      <div className="absolute -bottom-5 right-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-lg shadow-gray-200">
+                        <span className="text-lg">🎟</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 pt-7">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm leading-snug">StellarFest 2026 — Web3 Music Night</p>
+                          <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
+                            <span>📍</span> San Francisco, CA
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs text-gray-400">From</p>
+                          <p className="font-bold text-violet-600 text-sm">50 XLM</p>
+                        </div>
+                      </div>
+
+                      {/* Ticket tiers */}
+                      <div className="mt-3 flex gap-2">
+                        {['General · 50 XLM', 'VIP · 150 XLM'].map((tier) => (
+                          <span key={tier} className="flex-1 rounded-lg bg-gray-50 border border-gray-100 px-2 py-1.5 text-center text-xs text-gray-500 font-medium">
+                            {tier}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>320 / 500 tickets sold</span>
+                          <span className="text-violet-500 font-medium">64%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-gray-100">
+                          <div className="h-full w-[64%] rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+
+                  {/* Organizer trust card */}
+                  <div className="flex items-center gap-3 rounded-xl bg-white border border-gray-100 shadow-md shadow-gray-100/80 px-4 py-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white text-xs font-bold">
+                      AK
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 leading-none">Alex Kim</p>
+                      <p className="mt-0.5 text-xs text-gray-400">Verified Organizer · 47 events</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Shield className="h-4 w-4 text-emerald-500" />
+                      <span className="text-xs font-semibold text-emerald-600">500 XLM staked</span>
+                    </div>
+                  </div>
+
+                  {/* Attendance badge card */}
+                  <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 px-4 py-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">
+                      🏅
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-amber-900 leading-none">Soulbound Badge Earned</p>
+                      <p className="mt-0.5 text-xs text-amber-600">ETHSF 2025 Attendee — non-transferable NFT</p>
+                    </div>
+                    <Award className="h-4 w-4 shrink-0 text-amber-500" />
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 
           {/* Scroll indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-300">
             <span className="text-xs tracking-wider uppercase">Scroll</span>
-            <div className="h-8 w-px bg-gradient-to-b from-white/30 to-transparent" />
+            <div className="h-8 w-px bg-gradient-to-b from-gray-300 to-transparent" />
           </div>
         </section>
 
