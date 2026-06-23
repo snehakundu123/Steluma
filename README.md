@@ -2,9 +2,10 @@
 
 > **Luma/Eventbrite for Web3** — NFT ticketing, organizer staking, soulbound attendance badges, and a regulated resale marketplace, all built on Stellar Soroban smart contracts.
 
-[![CI](https://github.com/your-org/steluma/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/steluma/actions/workflows/ci.yml)
+[![CI](https://github.com/snehakundu123/Steluma/actions/workflows/ci.yml/badge.svg)](https://github.com/snehakundu123/Steluma/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-95%20passing-brightgreen)](./docs)
 [![Soroban](https://img.shields.io/badge/Soroban-v26-blue)](https://stellar.org/developers/soroban)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://steluma.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ---
@@ -171,7 +172,7 @@ User → Freighter → API (POST /tickets/purchase)
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/steluma.git
+git clone https://github.com/snehakundu123/Steluma.git
 cd steluma
 
 # 2. One-command setup (installs deps, starts Docker, migrates DB, seeds data)
@@ -679,7 +680,7 @@ The Dockerfile runs `prisma migrate deploy` automatically on startup.
 ### Scenario: Full Ticket Purchase and Attendance Flow
 
 **Step 1 — Connect Wallet**
-1. Open http://localhost:3000 and click "Connect Wallet"
+1. Open https://steluma.vercel.app and click "Connect Wallet"
 2. Approve the Freighter connection prompt
 3. Sign the challenge transaction (no XLM cost, never submitted)
 
