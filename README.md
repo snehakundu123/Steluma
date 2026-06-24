@@ -7,7 +7,18 @@
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://steluma.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-**Live:** https://steluma.vercel.app · **Repo:** https://github.com/snehakundu123/Steluma
+| Link Type | Access |
+|-----------|--------|
+| 🚀 Live Demo | [Open App](https://steluma.vercel.app) |
+| 🎥 Demo Video| [View Demo](https://www.youtube.com/watch?v=WvWvq_NNrx4) |
+
+---
+## Screenshots
+
+# Mobile Responsive
+<img width="348" height="741" alt="Screenshot 2026-06-25 at 1 01 54 AM" src="https://github.com/user-attachments/assets/1c420d3a-893c-4a16-9c5b-f2a1d7c8425d" />
+# CI/CD Pipelines
+<img width="1470" height="841" alt="Screenshot 2026-06-25 at 1 00 23 AM" src="https://github.com/user-attachments/assets/2c75b1df-8d74-4f2e-af06-d8b634bc32a5" />
 
 ---
 
