@@ -13,12 +13,19 @@
 | 🎥 Demo Video| [View Demo](https://www.youtube.com/watch?v=WvWvq_NNrx4) |
 
 ---
-## Screenshots
+# Screenshots
 
-# Mobile Responsive
-<img width="348" height="741" alt="Screenshot 2026-06-25 at 1 01 54 AM" src="https://github.com/user-attachments/assets/1c420d3a-893c-4a16-9c5b-f2a1d7c8425d" />
-# CI/CD Pipelines
-<img width="1470" height="841" alt="Screenshot 2026-06-25 at 1 00 23 AM" src="https://github.com/user-attachments/assets/2c75b1df-8d74-4f2e-af06-d8b634bc32a5" />
+## 📱 Mobile Responsive
+
+<p align="center">
+  <img width="348" height="741" alt="Mobile Responsive Screenshot" src="https://github.com/user-attachments/assets/1c420d3a-893c-4a16-9c5b-f2a1d7c8425d" />
+</p>
+
+## ⚙️ CI/CD Pipelines
+
+<p align="center">
+  <img width="1470" height="841" alt="CI/CD Pipelines Screenshot" src="https://github.com/user-attachments/assets/2c75b1df-8d74-4f2e-af06-d8b634bc32a5" />
+</p>
 
 ---
 
