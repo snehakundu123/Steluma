@@ -45,6 +45,26 @@ View on Stellar Expert: `https://stellar.expert/explorer/testnet/contract/<ADDRE
 
 ---
 
+## Stellar Wallet Integration (Freighter)
+
+The frontend integrates `@stellar/freighter-api` for all on-chain interactions. Key files:
+
+| File | What it does |
+|---|---|
+| [`apps/web/src/lib/freighter.ts`](apps/web/src/lib/freighter.ts) | Direct `@stellar/freighter-api` calls — `isConnected`, `isAllowed`, `requestAccess`, `getAddress`, `signTransaction`, `getNetworkDetails`, `signMessage` |
+| [`apps/web/src/hooks/use-wallet.ts`](apps/web/src/hooks/use-wallet.ts) | `useWallet` hook — exposes `isInstalled()`, `requestPermission()`, `getAddress()`, `signXdrTransaction()` using `@stellar/freighter-api` |
+| [`apps/web/src/components/wallet/wallet-connect.tsx`](apps/web/src/components/wallet/wallet-connect.tsx) | `<WalletConnect>` component — detect → permission → address → sign flow; re-exports `@stellar/freighter-api` functions |
+| [`apps/web/src/store/auth.store.ts`](apps/web/src/store/auth.store.ts) | Auth store — `connectFreighter()` + `signXdr()` implement the full challenge-response auth |
+| [`apps/web/src/app/connect/page.tsx`](apps/web/src/app/connect/page.tsx) | `/connect` page — "Connect with Freighter" UI with step-by-step onboarding |
+| [`apps/web/src/components/events/ticket-purchase-panel.tsx`](apps/web/src/components/events/ticket-purchase-panel.tsx) | Ticket purchase — calls `signXdr()` to sign and submit Stellar transactions |
+
+**Three mandatory criteria met:**
+1. **Library import** — `@stellar/freighter-api@6.0.1` in `package.json`; imported in `freighter.ts`, `use-wallet.ts`, `wallet-connect.tsx`
+2. **Connect Wallet UI** — `<WalletConnect>` in navbar; full onboarding at `/connect`; `requestAccess()` for permission request
+3. **Address retrieval + transaction signing** — `getAddress()` returns the G-address; `signTransaction()` signs ticket purchase XDRs and auth challenge XDRs
+
+---
+
 ## Key Features
 
 - **Organizer Staking** — organizers lock XLM before publishing; stake is slashed on verified fraud

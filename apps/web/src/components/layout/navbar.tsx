@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Wallet, Menu, X, ChevronDown, LogOut, LayoutDashboard, Ticket,
-  Award, Plus, Store, Search, Bell, Settings, Star, Shield, Zap,
+  Menu, X, ChevronDown, LogOut, LayoutDashboard, Ticket,
+  Award, Plus, Bell, Settings, Star, Shield, Zap,
   Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { WalletConnect } from '@/components/wallet/wallet-connect'
 import { useAuthStore } from '@/store/auth.store'
 import { truncateWallet, getTrustTierColor, cn } from '@/lib/utils'
 
@@ -46,7 +47,7 @@ function TrustPill({ tier }: { tier: string }) {
 
 export function Navbar() {
   const pathname = usePathname()
-  const { isAuthenticated, user, wallet, disconnect, isConnecting, connect } = useAuthStore()
+  const { isAuthenticated, user, wallet, disconnect } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -243,16 +244,7 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Button
-              variant="gradient"
-              size="sm"
-              className="gap-1.5 h-9 font-semibold"
-              onClick={() => connect().catch(() => {})}
-              disabled={isConnecting}
-            >
-              <Wallet className="h-4 w-4" />
-              {isConnecting ? 'Connecting…' : 'Connect Wallet'}
-            </Button>
+            <WalletConnect size="sm" showAddress={false} />
           )}
 
           {/* Mobile menu toggle */}
@@ -327,15 +319,7 @@ export function Navbar() {
 
               {!isAuthenticated && (
                 <div className="mt-2 pb-1">
-                  <Button
-                    variant="gradient"
-                    className="w-full gap-2"
-                    onClick={() => connect().catch(() => {})}
-                    disabled={isConnecting}
-                  >
-                    <Wallet className="h-4 w-4" />
-                    {isConnecting ? 'Connecting…' : 'Connect Wallet'}
-                  </Button>
+                  <WalletConnect className="w-full" />
                 </div>
               )}
             </div>
