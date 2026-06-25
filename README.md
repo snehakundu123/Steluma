@@ -63,23 +63,73 @@ View on Stellar Expert: `https://stellar.expert/explorer/testnet/contract/<ADDRE
 
 ---
 
-## Stellar Wallet Integration (Freighter)
+## Step 1 — Connect Wallet (Freighter)
 
-The frontend integrates `@stellar/freighter-api` for all on-chain interactions. Key files:
+The frontend integrates `@stellar/freighter-api` (`^6.0.1`) for wallet connection.
 
 | File | What it does |
 |---|---|
-| [`apps/web/src/lib/freighter.ts`](apps/web/src/lib/freighter.ts) | Direct `@stellar/freighter-api` calls — `isConnected`, `isAllowed`, `requestAccess`, `getAddress`, `signTransaction`, `getNetworkDetails`, `signMessage` |
-| [`apps/web/src/hooks/use-wallet.ts`](apps/web/src/hooks/use-wallet.ts) | `useWallet` hook — exposes `isInstalled()`, `requestPermission()`, `getAddress()`, `signXdrTransaction()` using `@stellar/freighter-api` |
-| [`apps/web/src/components/wallet/wallet-connect.tsx`](apps/web/src/components/wallet/wallet-connect.tsx) | `<WalletConnect>` component — detect → permission → address → sign flow; re-exports `@stellar/freighter-api` functions |
-| [`apps/web/src/store/auth.store.ts`](apps/web/src/store/auth.store.ts) | Auth store — `connectFreighter()` + `signXdr()` implement the full challenge-response auth |
-| [`apps/web/src/app/connect/page.tsx`](apps/web/src/app/connect/page.tsx) | `/connect` page — "Connect with Freighter" UI with step-by-step onboarding |
-| [`apps/web/src/components/events/ticket-purchase-panel.tsx`](apps/web/src/components/events/ticket-purchase-panel.tsx) | Ticket purchase — calls `signXdr()` to sign and submit Stellar transactions |
+| [`apps/web/src/lib/freighter.ts`](apps/web/src/lib/freighter.ts) | `isConnected`, `isAllowed`, `requestAccess`, `getAddress`, `signTransaction`, `getNetworkDetails` from `@stellar/freighter-api` |
+| [`apps/web/src/hooks/use-wallet.ts`](apps/web/src/hooks/use-wallet.ts) | `useWallet` hook — `isInstalled()`, `requestPermission()`, `getAddress()`, `signXdrTransaction()` |
+| [`apps/web/src/components/wallet/wallet-connect.tsx`](apps/web/src/components/wallet/wallet-connect.tsx) | `<WalletConnect>` component — detect → `requestAccess()` → `getAddress()` → `signTransaction()` |
+| [`apps/web/src/store/auth.store.ts`](apps/web/src/store/auth.store.ts) | `connectFreighter()` + `signXdr()` — challenge-response auth with Freighter |
+| [`apps/web/src/app/connect/page.tsx`](apps/web/src/app/connect/page.tsx) | `/connect` page — "Connect with Freighter" full onboarding UI |
 
-**Three mandatory criteria met:**
-1. **Library import** — `@stellar/freighter-api@6.0.1` in `package.json`; imported in `freighter.ts`, `use-wallet.ts`, `wallet-connect.tsx`
-2. **Connect Wallet UI** — `<WalletConnect>` in navbar; full onboarding at `/connect`; `requestAccess()` for permission request
-3. **Address retrieval + transaction signing** — `getAddress()` returns the G-address; `signTransaction()` signs ticket purchase XDRs and auth challenge XDRs
+---
+
+## Step 5 — Smart Contract Integration (`@stellar/stellar-sdk`)
+
+**Primary integration file: [`apps/web/src/lib/soroban.ts`](apps/web/src/lib/soroban.ts)**
+
+This file contains the complete `@stellar/stellar-sdk` contract integration. Key patterns used:
+
+```typescript
+import {
+  Contract,           // new Contract(contractId) for each deployed contract
+  TransactionBuilder, // builds Soroban contract invocation transactions
+  Networks,
+  Address,
+  nativeToScVal,
+  scValToNative,
+  xdr,
+  BASE_FEE,
+  rpc,               // rpc.Server for prepareTransaction / simulateTransaction
+} from '@stellar/stellar-sdk'
+
+const server = new rpc.Server(SOROBAN_RPC_URL)      // Soroban RPC server
+const preparedTx = await server.prepareTransaction(tx) // simulate + assemble
+```
+
+All five contracts are instantiated with `new Contract(id)`:
+
+```typescript
+export const eventFactoryContract    = new Contract(CONTRACT_IDS.eventFactory)
+export const ticketNftContract       = new Contract(CONTRACT_IDS.ticketNft)
+export const attendanceBadgeContract = new Contract(CONTRACT_IDS.attendanceBadge)
+export const stakingContract         = new Contract(CONTRACT_IDS.staking)
+export const marketplaceContract     = new Contract(CONTRACT_IDS.marketplace)
+```
+
+---
+
+## Step 6 — Frontend ↔ Contract Function Cross-Check
+
+Every Rust contract function has a matching TypeScript caller in `soroban.ts`.
+
+| Rust function (contracts/) | TypeScript caller (soroban.ts) | Used in UI |
+|---|---|---|
+| `EventFactory::create_event` | `buildCreateEventTx()` | `use-publish-event.ts` + `events/create/page.tsx` |
+| `EventFactory::get_event` | `getEvent()` | `ticket-purchase-panel.tsx` (live sold count) |
+| `EventFactory::get_event_count` | `getEventCount()` | available for dashboard stats |
+| `EventFactory::get_organizer_events` | `getOrganizerEvents()` | available for organizer profile |
+| `TicketNFT::mint_ticket` | `buildMintTicketTx()` | backend minting via XDR |
+| `TicketNFT::get_ticket` | `getTicket()` | available for ticket verification |
+| `TicketNFT::get_owner_tickets` | `getOwnerTickets()` | `user/page.tsx` ticket list |
+| `AttendanceBadge::mint_badge` | `buildMintBadgeTx()` | post-event check-in flow |
+| `AttendanceBadge::has_badge` | `hasBadge()` | `badges/page.tsx` on-chain verify |
+| `AttendanceBadge::get_owner_badges` | `getOwnerBadges()` | `badges/page.tsx` on-chain verify |
+| `AttendanceBadge::badge_count` | `badgeCount()` | available for global stats |
+| `Marketplace::get_listing` | `getListing()` | `marketplace/page.tsx` listing view |
 
 ---
 

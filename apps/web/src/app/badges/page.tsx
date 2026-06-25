@@ -3,12 +3,19 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Award, Search, Users, Hash, CalendarDays, X } from 'lucide-react'
+import { Award, Search, Users, Hash, CalendarDays, X, Shield, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/navbar'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { formatDate, getCategoryEmoji, cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/auth.store'
+import {
+  getOwnerBadges,
+  hasBadge,
+  CONTRACT_IDS,
+  type BadgeType,
+} from '@/lib/soroban'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,6 +164,72 @@ function BadgeSkeleton() {
   )
 }
 
+// ── On-chain badge verification panel ────────────────────────────────────────
+
+function OnChainVerification() {
+  const { wallet } = useAuthStore()
+  const [checking, setChecking] = useState(false)
+  const [onChainCount, setOnChainCount] = useState<number | null>(null)
+  const [checkError, setCheckError] = useState<string | null>(null)
+
+  async function checkOnChain() {
+    if (!wallet) return
+    setChecking(true)
+    setCheckError(null)
+    try {
+      // Call AttendanceBadge.get_owner_badges via @stellar/stellar-sdk Contract + TransactionBuilder
+      const ids = await getOwnerBadges(wallet, wallet)
+      setOnChainCount(ids.length)
+    } catch (err: any) {
+      setCheckError(err.message ?? 'On-chain query failed')
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  if (!wallet) return null
+
+  return (
+    <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Shield className="h-4 w-4 text-violet-600" />
+        <span className="text-sm font-semibold text-violet-800">On-chain verification</span>
+        <a
+          href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_IDS.attendanceBadge}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto text-xs text-violet-500 hover:text-violet-700 flex items-center gap-1"
+        >
+          <ExternalLink className="h-3 w-3" />
+          View contract
+        </a>
+      </div>
+      <p className="text-xs text-violet-600 mb-3">
+        Query the AttendanceBadge smart contract directly to verify your soulbound badges on-chain.
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={checkOnChain}
+        disabled={checking}
+        className="border-violet-300 text-violet-700 hover:bg-violet-100"
+      >
+        {checking ? 'Querying Stellar…' : 'Verify my badges on-chain'}
+      </Button>
+      {onChainCount !== null && (
+        <p className="mt-2 text-sm font-medium text-violet-800">
+          {onChainCount === 0
+            ? 'No badges found on-chain for your wallet.'
+            : `${onChainCount} badge${onChainCount !== 1 ? 's' : ''} verified on Stellar testnet.`}
+        </p>
+      )}
+      {checkError && (
+        <p className="mt-2 text-xs text-red-500">{checkError}</p>
+      )}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BadgesPage() {
@@ -219,6 +292,8 @@ export default function BadgesPage() {
               </div>
             )}
           </motion.div>
+
+          <OnChainVerification />
 
           {/* Search + filter */}
           <motion.div

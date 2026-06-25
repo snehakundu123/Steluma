@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 import { signXdr } from '@/lib/freighter'
 import { useAuthStore } from '@/store/auth.store'
 import { formatXLM } from '@/lib/utils'
+import { getEvent, CONTRACT_IDS } from '@/lib/soroban'
 
 type Tier = {
   id: string
@@ -118,7 +119,16 @@ export function TicketPurchasePanel({ event }: Props) {
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null)
   const [mintTxHash, setMintTxHash] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [onChainSold, setOnChainSold] = useState<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Query EventFactory.get_event on-chain to show live sold/remaining count
+  useEffect(() => {
+    if (!wallet || event.onChainEventId == null) return
+    getEvent(wallet, event.onChainEventId).then((data) => {
+      if (data) setOnChainSold(data.ticketsSold)
+    }).catch(() => { /* non-critical */ })
+  }, [wallet, event.onChainEventId])
 
   async function handleBuy(tier: Tier) {
     if (!wallet) return
@@ -246,7 +256,25 @@ export function TicketPurchasePanel({ event }: Props) {
       <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-xs text-gray-500">
         <div className="mb-1 font-medium text-gray-700">Blockchain Info</div>
         <div>Network: Stellar Testnet</div>
-        {event.onChainEventId != null && <div>Event ID: #{String(event.onChainEventId)}</div>}
+        {event.onChainEventId != null && (
+          <>
+            <div>Event ID: #{String(event.onChainEventId)}</div>
+            {onChainSold !== null && (
+              <div className="text-violet-600 font-medium">
+                On-chain sold: {onChainSold} (via EventFactory.get_event)
+              </div>
+            )}
+            <a
+              href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_IDS.eventFactory}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-violet-500 hover:text-violet-700 mt-1"
+            >
+              <ExternalLink className="h-3 w-3" />
+              View EventFactory contract
+            </a>
+          </>
+        )}
         <div>Royalty: {(event.royaltyBps ?? 500) / 100}% on resales</div>
       </div>
 
