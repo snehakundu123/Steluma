@@ -21,7 +21,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32v1-none
+          targets: wasm32-unknown-unknown,wasm32v1-none
 
       - name: Cache Cargo registry & build artifacts
         uses: actions/cache@v4

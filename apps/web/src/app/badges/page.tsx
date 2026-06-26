@@ -16,6 +16,7 @@ import {
   CONTRACT_IDS,
   type BadgeType,
 } from '@/lib/soroban'
+import { readContractFunction } from '@/lib/contract'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,15 @@ function OnChainVerification() {
   const [onChainCount, setOnChainCount] = useState<number | null>(null)
   const [checkError, setCheckError] = useState<string | null>(null)
 
+  // Read total badge supply directly from the AttendanceBadge contract via readContractFunction
+  const { data: totalBadgesOnChain } = useQuery({
+    queryKey: ['contract-badge-count', wallet],
+    queryFn: () =>
+      readContractFunction(CONTRACT_IDS.attendanceBadge, 'badge_count', [], wallet!),
+    enabled: !!wallet,
+    staleTime: 60_000,
+  })
+
   async function checkOnChain() {
     if (!wallet) return
     setChecking(true)
@@ -206,6 +216,11 @@ function OnChainVerification() {
       </div>
       <p className="text-xs text-violet-600 mb-3">
         Query the AttendanceBadge smart contract directly to verify your soulbound badges on-chain.
+        {totalBadgesOnChain !== null && totalBadgesOnChain !== undefined && (
+          <span className="ml-1 font-medium">
+            ({String(totalBadgesOnChain)} total badges minted on-chain)
+          </span>
+        )}
       </p>
       <Button
         size="sm"
