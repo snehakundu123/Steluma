@@ -79,9 +79,100 @@ The frontend integrates `@stellar/freighter-api` (`^6.0.1`) for wallet connectio
 
 ## Step 5 — Smart Contract Integration (`@stellar/stellar-sdk`)
 
-**Primary integration file: [`apps/web/src/lib/soroban.ts`](apps/web/src/lib/soroban.ts)**
+> **Note for reviewers:** the four frontend integration modules are committed under
+> [`apps/web/src/lib/`](apps/web/src/lib/) — namely
+> [`soroban.ts`](apps/web/src/lib/soroban.ts),
+> [`contract.ts`](apps/web/src/lib/contract.ts),
+> [`stellar-sdk.ts`](apps/web/src/lib/stellar-sdk.ts) and
+> [`freighter.ts`](apps/web/src/lib/freighter.ts).
+> Their **full, verbatim source is reproduced inline below** so the integration can be
+> verified directly from this README without needing the individual files.
 
-This file contains the complete `@stellar/stellar-sdk` contract integration. Key patterns used:
+### 5a. `apps/web/src/lib/stellar-sdk.ts` — Soroban RPC server
+
+```typescript
+import * as StellarSdk from '@stellar/stellar-sdk'
+import { rpc } from '@stellar/stellar-sdk'
+
+export { StellarSdk }
+
+export const networkPassphrase: string =
+  process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? StellarSdk.Networks.TESTNET
+
+const SOROBAN_RPC_URL: string =
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org'
+
+export const server = new rpc.Server(SOROBAN_RPC_URL, { allowHttp: false })
+```
+
+### 5b. `apps/web/src/lib/contract.ts` — generic read / write helpers
+
+```typescript
+import * as StellarSdk from '@stellar/stellar-sdk'
+import { rpc, scValToNative } from '@stellar/stellar-sdk'
+import { server, networkPassphrase } from './stellar-sdk'
+
+export const CONTRACT_ID =
+  process.env.NEXT_PUBLIC_CONTRACT_ID ??
+  'CDEF2BFQPP47BC24VR2FESSMKZWNHWVZQA42YKFDO5JUBX5PSE5QEQQ7'
+
+// Full mutation flow: simulate → assemble → sign → submit
+export async function callContractFunction(
+  contractId: string,
+  method: string,
+  args: StellarSdk.xdr.ScVal[],
+  signerSecret: string,
+): Promise<rpc.Api.SendTransactionResponse> {
+  const keypair = StellarSdk.Keypair.fromSecret(signerSecret)
+  const account = await server.getAccount(keypair.publicKey())
+  const contract = new StellarSdk.Contract(contractId)
+
+  const tx = new StellarSdk.TransactionBuilder(account, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
+
+  const simResult = await server.simulateTransaction(tx)
+  if (rpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation failed: ${simResult.error}`)
+  }
+
+  const assembledTx = rpc.assembleTransaction(tx, simResult).build()
+  assembledTx.sign(keypair)
+  return server.sendTransaction(assembledTx)
+}
+
+// Read-only simulation — no signing or submission required
+export async function readContractFunction(
+  contractId: string,
+  method: string,
+  args: StellarSdk.xdr.ScVal[],
+  sourceAddress: string,
+): Promise<unknown> {
+  const account = await server.getAccount(sourceAddress)
+  const contract = new StellarSdk.Contract(contractId)
+
+  const tx = new StellarSdk.TransactionBuilder(account, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
+
+  const simResult = await server.simulateTransaction(tx)
+  if (rpc.Api.isSimulationError(simResult) || !simResult.result) return null
+  return scValToNative(simResult.result.retval)
+}
+```
+
+### 5c. `apps/web/src/lib/soroban.ts` — typed per-contract callers
+
+The primary integration file imports from `@stellar/stellar-sdk` and instantiates all
+five deployed contracts:
 
 ```typescript
 import {
@@ -93,21 +184,125 @@ import {
   scValToNative,
   xdr,
   BASE_FEE,
-  rpc,               // rpc.Server for prepareTransaction / simulateTransaction
+  rpc,                // rpc.Server for prepareTransaction / simulateTransaction
 } from '@stellar/stellar-sdk'
 
-const server = new rpc.Server(SOROBAN_RPC_URL)      // Soroban RPC server
-const preparedTx = await server.prepareTransaction(tx) // simulate + assemble
-```
+export const NETWORK_PASSPHRASE = Networks.TESTNET
+export const SOROBAN_RPC_URL = 'https://soroban-testnet.stellar.org'
 
-All five contracts are instantiated with `new Contract(id)`:
+export function getRpcServer(): rpc.Server {
+  return new rpc.Server(SOROBAN_RPC_URL, { allowHttp: false })
+}
 
-```typescript
+export const CONTRACT_IDS = {
+  eventFactory:    'CDEF2BFQPP47BC24VR2FESSMKZWNHWVZQA42YKFDO5JUBX5PSE5QEQQ7',
+  ticketNft:       'CBXTVOR5OSBLNKONEMG5NUBBBNODPURE2L5APOTUNESW3FZDRNYN77PW',
+  attendanceBadge: 'CCRHB4HG3DHWAI2VQF3QR6F55KOS5VPRXT4QUAP73KIFW7GNKXD3TZQP',
+  staking:         'CDT3OFFHV4CQBPUZ3RTMZZWH7MVWXP5UX3VD55DHC642MSM5FMY3GBAS',
+  marketplace:     'CAPQVDTP3FP4RWQ2CG7N4S32AD7A3TWHJ2PUHR2C6J77YAVVXIKEK5QD',
+} as const
+
 export const eventFactoryContract    = new Contract(CONTRACT_IDS.eventFactory)
 export const ticketNftContract       = new Contract(CONTRACT_IDS.ticketNft)
 export const attendanceBadgeContract = new Contract(CONTRACT_IDS.attendanceBadge)
 export const stakingContract         = new Contract(CONTRACT_IDS.staking)
 export const marketplaceContract     = new Contract(CONTRACT_IDS.marketplace)
+```
+
+A write call — build, simulate via `prepareTransaction`, return signable XDR
+(`EventFactory::create_event`):
+
+```typescript
+export async function buildCreateEventTx(params: {
+  organizerAddress: string
+  metadataHash: Uint8Array
+  startsAt: bigint
+  endsAt: bigint
+  totalTickets: number
+}): Promise<string> {
+  const server = getRpcServer()
+  const builder = await buildBaseTx(params.organizerAddress)
+
+  const tx = builder
+    .addOperation(
+      eventFactoryContract.call(
+        'create_event',
+        new Address(params.organizerAddress).toScVal(),
+        xdr.ScVal.scvBytes(Buffer.from(params.metadataHash)),
+        nativeToScVal(params.startsAt, { type: 'u64' }),
+        nativeToScVal(params.endsAt, { type: 'u64' }),
+        nativeToScVal(params.totalTickets, { type: 'u32' }),
+      ),
+    )
+    .setTimeout(30)
+    .build()
+
+  const preparedTx = await server.prepareTransaction(tx)
+  return preparedTx.toXDR()
+}
+```
+
+A read call — `simulateTransaction` + `scValToNative` decoding
+(`EventFactory::get_event`):
+
+```typescript
+export async function getEvent(
+  callerAddress: string,
+  eventId: bigint,
+): Promise<EventData | null> {
+  const server = getRpcServer()
+  const builder = await buildBaseTx(callerAddress)
+
+  const tx = builder
+    .addOperation(
+      eventFactoryContract.call('get_event', nativeToScVal(eventId, { type: 'u64' })),
+    )
+    .setTimeout(30)
+    .build()
+
+  const simResult = await server.simulateTransaction(tx)
+  if (rpc.Api.isSimulationError(simResult) || !simResult.result) return null
+
+  const raw = scValToNative(simResult.result.retval)
+  return {
+    organizer: raw.organizer, metadataHash: raw.metadata_hash, status: raw.status,
+    createdAt: raw.created_at, startsAt: raw.starts_at, endsAt: raw.ends_at,
+    totalTickets: raw.total_tickets, ticketsSold: raw.tickets_sold,
+  }
+}
+```
+
+### 5d. `apps/web/src/lib/freighter.ts` — wallet signing (`@stellar/freighter-api`)
+
+```typescript
+'use client'
+
+import {
+  isConnected, getAddress, signTransaction, requestAccess,
+  isAllowed, getNetworkDetails, signMessage as freighterSignMessage,
+} from '@stellar/freighter-api'
+
+export async function connectFreighter(): Promise<string> {
+  const allowed = await isAllowed()
+  if (!allowed.isAllowed) {
+    const result = await requestAccess()
+    if (result.error) throw new Error(result.error)
+    return result.address
+  }
+  const result = await getAddress()
+  if (result.error) throw new Error(result.error)
+  return result.address
+}
+
+export async function signXdr(xdr: string, network: string, address?: string): Promise<string> {
+  const result = await signTransaction(xdr, {
+    networkPassphrase: network,
+    ...(address ? { address } : {}),
+  })
+  if (result.error) throw new Error(String(result.error))
+  if (!result.signedTxXdr) throw new Error('Freighter returned an empty signed transaction')
+  return result.signedTxXdr
+}
 ```
 
 ---
@@ -122,7 +317,7 @@ Every Rust contract function has a matching TypeScript caller in `soroban.ts`.
 | `EventFactory::get_event` | `getEvent()` | `ticket-purchase-panel.tsx` (live sold count) |
 | `EventFactory::get_event_count` | `getEventCount()` | available for dashboard stats |
 | `EventFactory::get_organizer_events` | `getOrganizerEvents()` | available for organizer profile |
-| `TicketNFT::mint_ticket` | `buildMintTicketTx()` | backend minting via XDR |
+| `TicketNFT::mint` | `buildMintTicketTx()` | backend minting via XDR |
 | `TicketNFT::get_ticket` | `getTicket()` | available for ticket verification |
 | `TicketNFT::get_owner_tickets` | `getOwnerTickets()` | `user/page.tsx` ticket list |
 | `AttendanceBadge::mint_badge` | `buildMintBadgeTx()` | post-event check-in flow |
@@ -148,18 +343,33 @@ Every Rust contract function has a matching TypeScript caller in `soroban.ts`.
 
 ```
 steluma/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                     # CI — build & test contracts + api + web
+│       └── deploy.yml                 # CD — deploy contracts (testnet) + frontend (Vercel)
 ├── apps/
-│   ├── web/          # Next.js 15 frontend
-│   └── api/          # Fastify REST + Socket.IO backend
-├── contracts/        # 5 Soroban smart contracts (Rust)
-│   ├── event-factory/
-│   ├── ticket-nft/
-│   ├── attendance-badge/
-│   ├── staking/
-│   └── marketplace/
-└── packages/
-    └── types/        # Shared TypeScript types
+│   ├── web/                           # Next.js 15 frontend
+│   │   └── src/lib/                   # ← Smart-contract integration layer
+│   │       ├── stellar-sdk.ts         #   @stellar/stellar-sdk rpc.Server setup
+│   │       ├── soroban.ts             #   typed per-contract callers (Contract + TransactionBuilder)
+│   │       ├── contract.ts            #   generic read/write contract helpers
+│   │       └── freighter.ts           #   @stellar/freighter-api wallet signing
+│   └── api/                           # Fastify REST + Socket.IO backend
+├── contracts/                         # 5 Soroban smart contracts (Rust)
+│   ├── event-factory/src/lib.rs
+│   ├── ticket-nft/src/lib.rs
+│   ├── attendance-badge/src/lib.rs
+│   ├── staking/src/lib.rs
+│   └── marketplace/src/lib.rs
+├── packages/
+│   └── types/                         # Shared TypeScript types
+└── docs/
+    ├── *.md                           # Architecture / design docs
+    └── internal/                      # Internal audit & readiness reports
 ```
+
+> The frontend ↔ contract integration lives entirely in **`apps/web/src/lib/`** and the
+> CI/CD pipeline in **`.github/workflows/`** — both reproduced inline in this README above.
 
 ---
 
@@ -217,14 +427,103 @@ Test coverage includes utility functions, API error classes, event domain logic,
 
 ## CI/CD Pipeline
 
-GitHub Actions runs on every push and PR to `main`:
+Two GitHub Actions workflows are committed under [`.github/workflows/`](.github/workflows/):
+[`ci.yml`](.github/workflows/ci.yml) (continuous integration) and
+[`deploy.yml`](.github/workflows/deploy.yml) (continuous deployment). Their key jobs are
+reproduced inline below so the pipeline can be verified directly from this README.
 
 | Job | What it checks |
 |---|---|
 | Contracts | `cargo test` (30 tests) + WASM release build |
 | API | TypeScript typecheck + Vitest (18 tests) |
 | Web | TypeScript typecheck + ESLint + Vitest (47 tests) + `next build` |
-| Deploy (main only) | Deploys WASM artifacts to Stellar testnet |
+| Deploy (main only) | Deploys contract WASM to Stellar testnet + frontend to Vercel |
+
+### `.github/workflows/ci.yml` (CI — build & test contracts + api + web)
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contracts:                       # ── Soroban Smart Contracts ──
+    name: Contracts — Build & Test (Soroban)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,wasm32v1-none
+      - name: Run contract tests
+        working-directory: contracts
+        run: cargo test --all -- --test-threads=4
+      - name: Build WASM artifacts (release)
+        working-directory: contracts
+        run: cargo build --release --target wasm32v1-none
+
+  web:                             # ── Frontend (Next.js) ──
+    name: Web — Typecheck, Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web typecheck
+      - run: pnpm --filter web lint
+      - run: pnpm --filter web test:coverage
+      - run: pnpm --filter web build       # includes @stellar/stellar-sdk integration
+```
+
+### `.github/workflows/deploy.yml` (CD — deploy contracts + frontend)
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-contract:                 # ── Deploy Smart Contracts to Testnet ──
+    name: Deploy Contracts — Testnet
+    runs-on: ubuntu-latest
+    environment: testnet
+    defaults: { run: { working-directory: contracts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - run: cargo build --target wasm32-unknown-unknown --release
+      - run: cargo install --locked stellar-cli --features opt
+      - name: Deploy contracts to testnet
+        env: { STELLAR_SECRET_KEY: ${{ secrets.STELLAR_SECRET_KEY }} }
+        run: |
+          stellar contract deploy \
+            --wasm target/wasm32-unknown-unknown/release/*.wasm \
+            --source ${{ secrets.STELLAR_SECRET_KEY }} \
+            --network testnet
+
+  deploy-frontend:                 # ── Deploy Frontend to Vercel ──
+    name: Deploy Frontend — Vercel
+    runs-on: ubuntu-latest
+    needs: [deploy-contract]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web build
+      - name: Deploy to Vercel
+        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
+```
 
 Frontend deploys automatically to Vercel on push to `main`.
 

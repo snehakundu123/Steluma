@@ -10,6 +10,9 @@ out/
 *.wasm
 contracts/target/
 
+# Auto-generated Soroban test snapshots (regenerate on `cargo test`)
+contracts/**/test_snapshots/
+
 # Turbo cache
 .turbo/
 

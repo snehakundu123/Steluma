@@ -233,13 +233,13 @@ export async function getOrganizerEvents(
   return ids
 }
 
-// ── TicketNFT: mint_ticket ───────────────────────────────────────────────────
+// ── TicketNFT: mint ──────────────────────────────────────────────────────────
 
 /**
- * Build + prepare a TicketNFT.mint_ticket transaction.
+ * Build + prepare a TicketNFT.mint transaction.
  *
- * Mirrors the Rust function:
- *   pub fn mint_ticket(env, admin, to, event_id, tier, ticket_number, metadata_uri) -> u64
+ * Mirrors the Rust function exactly:
+ *   pub fn mint(env, admin, to, event_id, tier, ticket_number, metadata_uri, is_transferable) -> u64
  */
 export async function buildMintTicketTx(params: {
   adminAddress: string
@@ -248,6 +248,7 @@ export async function buildMintTicketTx(params: {
   tier: string
   ticketNumber: number
   metadataUri: string
+  isTransferable: boolean
 }): Promise<string> {
   const server = getRpcServer()
   const builder = await buildBaseTx(params.adminAddress)
@@ -255,13 +256,14 @@ export async function buildMintTicketTx(params: {
   const tx = builder
     .addOperation(
       ticketNftContract.call(
-        'mint_ticket',
+        'mint',
         new Address(params.adminAddress).toScVal(),
         new Address(params.toAddress).toScVal(),
         nativeToScVal(params.eventId, { type: 'u64' }),
         nativeToScVal(params.tier, { type: 'symbol' }),
         nativeToScVal(params.ticketNumber, { type: 'u32' }),
         nativeToScVal(params.metadataUri, { type: 'string' }),
+        nativeToScVal(params.isTransferable, { type: 'bool' }),
       ),
     )
     .setTimeout(30)
